@@ -28,12 +28,10 @@ from velbusaio.channels import (
     SelectedProgram,
     Sensor,
     SensorNumber,
-)
-from velbusaio.channels import Temperature
-from velbusaio.channels import Temperature as TemperatureChannelType
-from velbusaio.channels import (
+    Temperature,
     ThermostatChannel,
 )
+from velbusaio.channels import Temperature as TemperatureChannelType
 from velbusaio.command_registry import commandRegistry
 from velbusaio.const import (
     CHANNEL_LIGHT_VALUE,
@@ -70,10 +68,12 @@ from velbusaio.messages.clear_led import ClearLedMessage
 from velbusaio.messages.counter_status import CounterStatusMessage
 from velbusaio.messages.counter_status_request import CounterStatusRequestMessage
 from velbusaio.messages.counter_value import CounterValueMessage
-from velbusaio.messages.dali_device_settings import DaliDeviceSettingMsg
+from velbusaio.messages.dali_device_settings import (
+    DaliDeviceSettingMsg,
+    MemberOfGroupMsg,
+)
 from velbusaio.messages.dali_device_settings import DeviceType as DaliDeviceType
 from velbusaio.messages.dali_device_settings import DeviceTypeMsg as DaliDeviceTypeMsg
-from velbusaio.messages.dali_device_settings import MemberOfGroupMsg
 from velbusaio.messages.dali_device_settings_request import (
     COMMAND_CODE as DALI_DEVICE_SETTINGS_REQUEST_COMMAND_CODE,
 )
@@ -234,6 +234,16 @@ class Module:
 
     def __repr__(self) -> str:
         return f"<{self._name} type:{self._type} address:{self._address} loaded:{self.loaded} loading:{self._is_loading} channels: {self._channels}>"
+
+    def __to_simple_dict__(self) -> dict:
+        return {
+            "name": self._name,
+            "type": self._type,
+            "address": self._address,
+            "loaded": self.loaded,
+            "loading": self._is_loading,
+            "channel_count": len(self._channels),
+        }
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -765,7 +775,6 @@ class Module:
             return
 
         for memory_key, memory_part in self._data["Memory"].items():
-
             if memory_key == "Address":
                 for addr_int in memory_part.keys():
                     addr = struct.unpack(
