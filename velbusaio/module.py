@@ -302,8 +302,8 @@ class Module:
         Process received message
         """
         # logger.debug(f"RX: {message}")
-        d = json.load(message.to_json_basic())
-        logger.debug("RX: Received message %s", message["name"], message=d)
+        d = message.to_json_basic()
+        logger.debug("RX: Received message %s", d["name"], message=d)
         _channel_offset = self.calc_channel_offset(message.address)
 
         if isinstance(
