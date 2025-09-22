@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import binascii
-import logging
 import time
 import typing as t
 from asyncio import transports
 
 import backoff
+import mh_structlog as logging
 
 from velbusaio.const import MAXIMUM_MESSAGE_SIZE, MINIMUM_MESSAGE_SIZE, SLEEP_TIME
 from velbusaio.raw_message import RawMessage
 from velbusaio.raw_message import create as create_message_info
 
+logger = logging.getLogger(__name__)
+
 
 def _on_write_backoff(details):
-    logging.debug(
+    logger.debug(
         f"Transport is not open, waiting {details.wait} seconds after {details.tries}"
     )
 
@@ -32,7 +34,7 @@ class VelbusProtocol(asyncio.BufferedProtocol):
         connection_lost_callback=None,
     ) -> None:
         super().__init__()
-        self._log = logging.getLogger("velbus-protocol")
+        self._log = logging.getLogger(__name__)
         self._message_received_callback = message_received_callback
         self._connection_lost_callback = connection_lost_callback
 
