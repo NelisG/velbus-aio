@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 
 from velbusaio.controller import Velbus
 
-logging.setup()
+logging.setup(global_filter_level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
