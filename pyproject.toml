@@ -33,6 +33,8 @@ dependencies = [
     "pyserial-asyncio_fast>=0.11",
     "backoff>=1.10.0",
     "aiofile",
+    "mh-structlog>=0.0.37",
+    "google-cloud-logging>=3.12.1",
 ]
 
 [project.urls]

@@ -33,12 +33,8 @@ credentials = service_account.Credentials.from_service_account_file(
 )
 gcp_client = gcp_logging.Client(credentials=credentials)
 gcp_client.setup_logging()
+# Set the root logger for the velbusaio library to DEBUG
 logging.getLogger("velbusaio").setLevel(logging.DEBUG)
-logging.getLogger("velbus-protocol").setLevel(logging.DEBUG)
-logging.getLogger("velbus-module").setLevel(logging.DEBUG)
-logging.getLogger("velbus-handler").setLevel(logging.DEBUG)
-logging.getLogger("velbus-vlpFile").setLevel(logging.DEBUG)
-logging.getLogger("velbus").setLevel(logging.DEBUG)
 
 logging.basicConfig(
     stream=sys.stdout,
