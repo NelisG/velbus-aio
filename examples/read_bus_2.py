@@ -34,7 +34,7 @@ credentials = service_account.Credentials.from_service_account_file(
     "./gcp-credentials.json"
 )
 gcp_client = gcp_logging.Client(credentials=credentials)
-gcp_client.setup_logging()
+gcp_client.setup_logging(log_level=logging.DEBUG)
 
 
 asyncio.run(main(args.connect), debug=True)
