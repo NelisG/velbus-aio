@@ -24,7 +24,7 @@ async def main(connect_str: str):
     await velbus.connect()
     await velbus.start()
     for mod in (velbus.get_modules()).values():
-        logging.info(mod)
+        logger.info(mod)
         # print("")
     await asyncio.sleep(6000000000)
 
