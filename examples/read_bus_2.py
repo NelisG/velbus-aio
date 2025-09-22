@@ -2,13 +2,16 @@
 
 import argparse
 import asyncio
-import logging
 import sys
 
+import mh_structlog as logging
 from google.cloud import logging as gcp_logging
 from google.oauth2 import service_account
 
 from velbusaio.controller import Velbus
+
+logging.setup()
+logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
@@ -33,12 +36,12 @@ credentials = service_account.Credentials.from_service_account_file(
 )
 gcp_client = gcp_logging.Client(credentials=credentials)
 gcp_client.setup_logging()
-logging.getLogger("velbusaio").setLevel(logging.DEBUG)
-logging.getLogger("velbus-protocol").setLevel(logging.DEBUG)
-logging.getLogger("velbus-module").setLevel(logging.DEBUG)
-logging.getLogger("velbus-handler").setLevel(logging.DEBUG)
-logging.getLogger("velbus-vlpFile").setLevel(logging.DEBUG)
-logging.getLogger("velbus").setLevel(logging.DEBUG)
+# logging.getLogger("velbusaio").setLevel(logging.DEBUG)
+# logging.getLogger("velbus-protocol").setLevel(logging.DEBUG)
+# logging.getLogger("velbus-module").setLevel(logging.DEBUG)
+# logging.getLogger("velbus-handler").setLevel(logging.DEBUG)
+# logging.getLogger("velbus-vlpFile").setLevel(logging.DEBUG)
+# logging.getLogger("velbus").setLevel(logging.DEBUG)
 
 logging.basicConfig(
     stream=sys.stdout,

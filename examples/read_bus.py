@@ -2,11 +2,14 @@
 
 import argparse
 import asyncio
-import logging
 import sys
+
+import mh_structlog as logging
 
 from velbusaio.controller import Velbus
 
+logging.setup()
+logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
     "--connect", help="Connection string", default="tls://192.168.1.9:27015"
@@ -24,12 +27,12 @@ async def main(connect_str: str):
     await asyncio.sleep(6000000000)
 
 
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.DEBUG,
-    style="{",
-    datefmt="%H:%M:%S",
-    format="{asctime} {levelname:<9} {message}",
-)
-logging.getLogger("asyncio").setLevel(logging.DEBUG)
+# logging.basicConfig(
+#     stream=sys.stdout,
+#     level=logging.DEBUG,
+#     style="{",
+#     datefmt="%H:%M:%S",
+#     format="{asctime} {levelname:<9} {message}",
+# )
+# logging.getLogger("asyncio").setLevel(logging.DEBUG)
 asyncio.run(main(args.connect), debug=True)
