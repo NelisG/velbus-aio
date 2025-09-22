@@ -2,7 +2,6 @@
 
 import argparse
 import asyncio
-import sys
 
 import mh_structlog as logging
 
@@ -27,12 +26,4 @@ async def main(connect_str: str):
     await asyncio.sleep(6000000000)
 
 
-# logging.basicConfig(
-#     stream=sys.stdout,
-#     level=logging.DEBUG,
-#     style="{",
-#     datefmt="%H:%M:%S",
-#     format="{asctime} {levelname:<9} {message}",
-# )
-# logging.getLogger("asyncio").setLevel(logging.DEBUG)
 asyncio.run(main(args.connect), debug=True)

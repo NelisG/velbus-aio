@@ -2,7 +2,6 @@
 
 import argparse
 import asyncio
-import sys
 
 import mh_structlog as logging
 from google.cloud import logging as gcp_logging
@@ -36,20 +35,6 @@ credentials = service_account.Credentials.from_service_account_file(
 )
 gcp_client = gcp_logging.Client(credentials=credentials)
 gcp_client.setup_logging()
-# logging.getLogger("velbusaio").setLevel(logging.DEBUG)
-# logging.getLogger("velbus-protocol").setLevel(logging.DEBUG)
-# logging.getLogger("velbus-module").setLevel(logging.DEBUG)
-# logging.getLogger("velbus-handler").setLevel(logging.DEBUG)
-# logging.getLogger("velbus-vlpFile").setLevel(logging.DEBUG)
-# logging.getLogger("velbus").setLevel(logging.DEBUG)
 
-logging.basicConfig(
-    stream=sys.stdout,
-    level=logging.DEBUG,
-    style="{",
-    datefmt="%H:%M:%S",
-    format="{asctime} {levelname:<9} {message}",
-)
-logging.getLogger("asyncio").setLevel(logging.DEBUG)
 
 asyncio.run(main(args.connect), debug=True)
