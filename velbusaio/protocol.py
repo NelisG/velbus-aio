@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import binascii
-import logging
 import time
 import typing as t
 from asyncio import transports
 
 import backoff
+import mh_structlog as logging
 
 from velbusaio.const import MAXIMUM_MESSAGE_SIZE, MINIMUM_MESSAGE_SIZE, SLEEP_TIME
 from velbusaio.raw_message import RawMessage
 from velbusaio.raw_message import create as create_message_info
 
+logger = logging.getLogger(__name__)
+
 
 def _on_write_backoff(details):
-    logging.debug(
+    logger.debug(
         f"Transport is not open, waiting {details.wait} seconds after {details.tries}"
     )
 
@@ -32,7 +34,6 @@ class VelbusProtocol(asyncio.BufferedProtocol):
         connection_lost_callback=None,
     ) -> None:
         super().__init__()
-        self._log = logging.getLogger("velbus-protocol")
         self._message_received_callback = message_received_callback
         self._connection_lost_callback = connection_lost_callback
 
@@ -55,7 +56,7 @@ class VelbusProtocol(asyncio.BufferedProtocol):
 
     def connection_made(self, transport: transports.BaseTransport) -> None:
         self.transport = transport
-        self._log.info("Connection established to Velbus")
+        logger.info("Connection established to Velbus")
 
         self._restart_writer = True
         self.restart_writing()
@@ -87,9 +88,9 @@ class VelbusProtocol(asyncio.BufferedProtocol):
         if self._closing:
             return  # Connection loss was expected, nothing to do here...
         elif exc is None:
-            self._log.warning("EOF received from Velbus")
+            logger.warning("EOF received from Velbus")
         else:
-            self._log.error(f"Velbus connection lost: {exc!r}")
+            logger.error(f"Velbus connection lost: {exc!r}")
 
         self.transport = None
         asyncio.ensure_future(self.pause_writing())
@@ -106,7 +107,7 @@ class VelbusProtocol(asyncio.BufferedProtocol):
         Called when asyncio.Protocol detects received data from serial port.
         """
         self._serial_buf += data
-        self._log.debug(
+        logger.debug(
             "Received {nbytes} bytes from Velbus: {data_hex}".format(
                 nbytes=len(data),
                 data_hex=binascii.hexlify(self._serial_buf[: len(data)], " "),
@@ -134,7 +135,7 @@ class VelbusProtocol(asyncio.BufferedProtocol):
         Called when asyncio.BufferedProtocol detects received data from network.
         """
         self._buffer_pos += nbytes
-        # self._log.debug(
+        # logger.debug(
         #    "Received {nbytes} bytes from Velbus: {data_hex}".format(
         #        nbytes=nbytes,
         #        data_hex=binascii.hexlify(
@@ -162,13 +163,13 @@ class VelbusProtocol(asyncio.BufferedProtocol):
         self._buffer_view = memoryview(self._buffer)
 
     async def _process_message(self, msg: RawMessage) -> None:
-        # self._log.debug(f"RX: {msg}")
+        # logger.debug(f"RX: {msg}")
         await self._message_received_callback(msg)
 
     # Everything write-related
 
     async def write_auth_key(self, authkey: str) -> None:
-        self._log.debug("TX: authentication key")
+        logger.debug("TX: authentication key")
         if not self.transport.is_closing():
             self.transport.write(authkey.encode("utf-8"))
 
@@ -176,8 +177,8 @@ class VelbusProtocol(asyncio.BufferedProtocol):
         self._send_queue.put_nowait(msg)
 
     async def _get_message_from_send_queue(self) -> None:
-        self._log.debug("Starting Velbus write message from send queue")
-        self._log.debug("Acquiring write lock")
+        logger.debug("Starting Velbus write message from send queue")
+        logger.debug("Acquiring write lock")
         await self._write_transport_lock.acquire()
         while self._restart_writer:
             # wait for an item from the queue
@@ -199,14 +200,14 @@ class VelbusProtocol(asyncio.BufferedProtocol):
 
             except (asyncio.CancelledError, GeneratorExit) as exc:
                 if not self._closing:
-                    self._log.error(f"Stopping Velbus writer due to {exc!r}")
+                    logger.error(f"Stopping Velbus writer due to {exc!r}")
                 self._restart_writer = False
             except Exception as exc:
-                self._log.error(f"Restarting Velbus writer due to {exc!r}")
+                logger.error(f"Restarting Velbus writer due to {exc!r}")
                 self._restart_writer = True
         if self._write_transport_lock.locked():
             self._write_transport_lock.release()
-        self._log.debug("Ending Velbus write message from send queue")
+        logger.debug("Ending Velbus write message from send queue")
 
     @staticmethod
     def _calculate_queue_sleep_time(msg_info, send_time):
@@ -231,7 +232,7 @@ class VelbusProtocol(asyncio.BufferedProtocol):
         on_backoff=_on_write_backoff,
     )
     async def _write_message(self, msg: RawMessage) -> bool:
-        self._log.debug(f"TX: {msg}")
+        logger.debug(f"TX: {msg}")
         if not self.transport.is_closing():
             self.transport.write(msg.to_bytes())
             return True
@@ -239,5 +240,5 @@ class VelbusProtocol(asyncio.BufferedProtocol):
             return False
 
     async def wait_on_all_messages_sent_async(self) -> None:
-        self._log.debug("Waiting on all messages sent")
+        logger.debug("Waiting on all messages sent")
         await self._send_queue.join()

@@ -6,13 +6,13 @@ from __future__ import annotations
 
 import importlib.resources
 import json
-import logging
 import os
 import pathlib
 import struct
 import sys
 from typing import Awaitable, Callable
 
+import mh_structlog as logging
 from aiofile import async_open
 
 from velbusaio.channels import (
@@ -28,12 +28,10 @@ from velbusaio.channels import (
     SelectedProgram,
     Sensor,
     SensorNumber,
-)
-from velbusaio.channels import Temperature
-from velbusaio.channels import Temperature as TemperatureChannelType
-from velbusaio.channels import (
+    Temperature,
     ThermostatChannel,
 )
+from velbusaio.channels import Temperature as TemperatureChannelType
 from velbusaio.command_registry import commandRegistry
 from velbusaio.const import (
     CHANNEL_LIGHT_VALUE,
@@ -70,10 +68,12 @@ from velbusaio.messages.clear_led import ClearLedMessage
 from velbusaio.messages.counter_status import CounterStatusMessage
 from velbusaio.messages.counter_status_request import CounterStatusRequestMessage
 from velbusaio.messages.counter_value import CounterValueMessage
-from velbusaio.messages.dali_device_settings import DaliDeviceSettingMsg
+from velbusaio.messages.dali_device_settings import (
+    DaliDeviceSettingMsg,
+    MemberOfGroupMsg,
+)
 from velbusaio.messages.dali_device_settings import DeviceType as DaliDeviceType
 from velbusaio.messages.dali_device_settings import DeviceTypeMsg as DaliDeviceTypeMsg
-from velbusaio.messages.dali_device_settings import MemberOfGroupMsg
 from velbusaio.messages.dali_device_settings_request import (
     COMMAND_CODE as DALI_DEVICE_SETTINGS_REQUEST_COMMAND_CODE,
 )
@@ -102,6 +102,8 @@ from velbusaio.messages.slider_status import SliderStatusMessage
 from velbusaio.messages.slow_blinking_led import SlowBlinkingLedMessage
 from velbusaio.messages.temp_sensor_status import TempSensorStatusMessage
 from velbusaio.messages.update_led_status import UpdateLedStatusMessage
+
+logger = logging.getLogger(__name__)
 
 
 class Module:
@@ -171,7 +173,6 @@ class Module:
         return SCAN_MODULEINFO_TIMEOUT_INITIAL
 
     async def initialize(self, writer: Callable[[Message], Awaitable[None]]) -> None:
-        self._log = logging.getLogger("velbus-module")
         # load the protocol data
         try:
             if sys.version_info >= (3, 13):
@@ -189,9 +190,9 @@ class Module:
                     )
                 ) as protocol_file:
                     self._data = json.loads(await protocol_file.read())
-            self._log.debug(f"Module spec {h2(self._type)} loaded")
+            logger.debug(f"Module spec {h2(self._type)} loaded")
         except FileNotFoundError:
-            self._log.warning(f"No module spec for {h2(self._type)}")
+            logger.warning(f"No module spec for {h2(self._type)}")
             self._data = {}
 
         # set some params from the velbus controller
@@ -234,6 +235,16 @@ class Module:
 
     def __repr__(self) -> str:
         return f"<{self._name} type:{self._type} address:{self._address} loaded:{self.loaded} loading:{self._is_loading} channels: {self._channels}>"
+
+    def __to_simple_dict__(self) -> dict:
+        return {
+            "name": self._name,
+            "type": self._type,
+            "address": self._address,
+            "loaded": self.loaded,
+            "loading": self._is_loading,
+            "channel_count": len(self._channels),
+        }
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -290,7 +301,9 @@ class Module:
         """
         Process received message
         """
-        self._log.debug(f"RX: {message}")
+        # logger.debug(f"RX: {message}")
+        d = message.to_json_basic()
+        logger.debug("RX: Received message %s", d["name"], message=d)
         _channel_offset = self.calc_channel_offset(message.address)
 
         if isinstance(
@@ -563,9 +576,7 @@ class Module:
         try:
             await self._channels[channel].update(updates)
         except KeyError:
-            self._log.info(
-                f"channel {channel} does not exist for module @ address {self}"
-            )
+            logger.info(f"channel {channel} does not exist for module @ address {self}")
 
     def get_channels(self) -> dict:
         """
@@ -674,7 +685,7 @@ class Module:
             chan = self._translate_channel_name(chan)
             self._channels[chan].set_name_char(pos, message.data)
         else:
-            self._log.debug(mdata)
+            logger.debug(mdata)
 
     def _process_channel_name_message(self, part: int, message: Message) -> None:
         channel = self._translate_channel_name(message.channel)
@@ -721,7 +732,7 @@ class Module:
         if "Channels" not in self._data:
             # some modules have no channels
             return
-        self._log.info(f"Request module status {self._address}")
+        logger.info(f"Request module status {self._address}")
 
         mod_stat_req_msg = ModuleStatusRequestMessage(self._address)
         counter_msg = None
@@ -765,7 +776,6 @@ class Module:
             return
 
         for memory_key, memory_part in self._data["Memory"].items():
-
             if memory_key == "Address":
                 for addr_int in memory_part.keys():
                     addr = struct.unpack(
